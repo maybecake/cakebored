@@ -16,14 +16,12 @@ These are my personal requirements for this keyboard. P number is Priority of th
 * P0: Programable (i.e. QMK firmware)
 * P0: Hot swap key switches
 * P0: RGB per key and under lighting.
-
 * P1: USB A hub in keyboard
 * P1: Modular 3d print design that allows for some adjustment of parts
 * P1: Customizable tilting of halves
 * P1: Customizable positioning of thumb clusters
 * P1: Socketed micro controller - easily changeable
 * P1: Ability to switch to a different microcontroller
-
 * P2: Customizable tilting for individual finger key columns
 * P2: Wireless
 * P2: Rotary encoder input
