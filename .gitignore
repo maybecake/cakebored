@@ -1,3 +1,4 @@
 # generated 3d files.
 *.gcode
 *.stl
+*.FCStd1
