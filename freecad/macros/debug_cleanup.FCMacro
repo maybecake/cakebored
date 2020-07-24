@@ -1,0 +1,25 @@
+from PySide import QtGui
+import Sketcher
+
+doc = FreeCAD.ActiveDocument
+
+mw = Gui.getMainWindow()
+r = mw.findChild(QtGui.QTextEdit, "Report view")
+r.clear()
+
+
+def debug(verbose=False):
+    for obj in doc.Objects:
+        print('\n {}({}, {})'.format(obj.Label, obj.Name, obj.TypeId))
+        if hasattr(obj, 'Type',):
+            print('    type:', obj.Type, )
+        if hasattr(obj, 'Shape'):
+            print('    Shape type: {} {}'.format(
+                obj.Shape.TypeId, obj.Shape.check()))
+            if verbose:
+                print(obj.Shape.Wires, obj.Shape.Edges, obj.Shape.Vertexes)
+
+
+# Clean up test boxes.
+if hasattr(doc, 'aBox'):
+    doc.removeObject('aBox')

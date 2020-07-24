@@ -1,0 +1,81 @@
+"""This script demonstrates my failures at trying to interact with the Sketcher system."""
+
+import Sketcher
+import FreeCADGui as Gui
+from PySide import QtGui
+
+doc = FreeCAD.ActiveDocument
+
+mw = Gui.getMainWindow()
+r = mw.findChild(QtGui.QTextEdit, "Report view")
+r.clear()
+
+# Story time: I had a simple goal for this script. Select 2 or more points in a
+# sketch and apply a horizontal distance constraint of 0 on them. Seems very
+# easy, right? I thought so too.
+
+
+def get_edge(sketch, vertex=None):
+    """Returns (edge number, vertex number) given sketch and vertex"""
+    # So... the constain API addConstraint() takes and edge number and a vertex
+    # number on the edge. However, the selection API does not actually return the
+    # edge number and for selected vertexes, returns a global name for it.
+    #
+    # This function attempts to map the vertex passed in to an (edge, edge_vertex)
+    # pair. However, different sketch geometries have different number of Vectors.
+    # Notice that these are vectors... not vertexes, so they can't even be directly
+    # compared to what the Selection API returns.
+    for num, edge in enumerate(sketch.Geometry, start=1):
+        print('{}. {} ({})'.format(num, edge, edge.toShape()))
+        if hasattr(edge, 'StartPoint') and hasattr(edge, 'EndPoint'):
+            print('    {} -> {}'.format(edge.StartPoint, edge.EndPoint))
+            if edge.StartPoint == vertex:
+                return (num, 1)
+            if edge.EndPoint == vertex:
+                return (num, 2)
+        elif isinstance(edge, Part.Point):
+            print('    {}'.format(edge.toShape()))
+
+
+def vert_align_points(objects, names):
+    """Applies vertical constraints on all vertices in object."""
+    # An earlier attempt, given a list of selected objects, just call the constaint
+    # API. This is before I learned that (1) constraint API doesn't take these
+    # objects are arguments and (2) not all selected objects are always returned due
+    # to the mismatch between global selection and Sketcher selection systems.
+    #
+    # Read more about this here: https://forum.freecadweb.org/viewtopic.php?t=26561
+    ref_point = None
+    for o, n in zip(objects, names):
+        # This doesn't work since selected vertexes are globally numbered.
+        index = re.match('.*?([0-9]+)$', n).group(1)
+        print('{}. {} is {}'.format(o, n, index))
+        if o.ShapeType == 'Vertex':
+            if not ref_point:
+                ref_point = o
+            else:
+                pass
+            # DistanceY Params: (edge_num 1, vector on 1, edge_num 2, vector on
+            # 2, constraint)
+
+            # sketch.addConstraint(Sketcher.Constraints(
+            #     'DistanceY', 0, 1, 0, 2, 0))
+
+
+# Select sub elements from the selection object.
+selected_ex = Gui.Selection.getSelectionEx()
+in_edit = Gui.ActiveDocument.getInEdit()
+sketch = None
+if in_edit:
+    sketch = in_edit.Object
+    get_edge(sketch)
+
+if len(selected_ex) == 1 and selected_ex[0].HasSubObjects:
+    objects = selected_ex[0].SubObjects
+    names = selected_ex[0].SubElementNames
+    if len(objects) != len(names):
+        print("Selected sub elements does not match requested.")
+    else:
+        vert_align_points(objects, names)
+else:
+    print("no selected object")
