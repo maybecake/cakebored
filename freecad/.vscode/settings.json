@@ -1,7 +1,7 @@
 {
   "python.linting.pylintEnabled": true,
   "python.linting.pylintArgs": [
-    "--variable-rgx=[a-z_][a-z0-9_]{0,30}$ --indent-string='  '"
+    "--variable-rgx=[a-z_][a-z0-9_]{0,30}$"
   ],
   "python.pythonPath": "C:\\Users\\superCake\\AppData\\Local\\Programs\\Python\\Python38-32\\python.exe",
 }
