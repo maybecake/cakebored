@@ -1,0 +1,16 @@
+import FreeCAD
+import Part
+from PySide import QtGui
+
+mw = Gui.getMainWindow()
+r = mw.findChild(QtGui.QTextEdit, "Report view")
+r.clear()
+
+doc = FreeCAD.ActiveDocument
+if not hasattr(doc, 'aBox'):
+    box = doc.addObject("Part::Box", 'aBox')
+
+
+# TODO: Copy and place a grid of these boxes.
+
+doc.recompute()
