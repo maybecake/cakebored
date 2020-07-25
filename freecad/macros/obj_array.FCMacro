@@ -1,32 +1,56 @@
+from finger import Hand, Finger, Row
 import finger
 import FreeCAD as App
 import utils
+from FreeCAD import ActiveDocument as doc, Rotation, Vector, Placement
 
 # This is needed for development since FreeCAD uses cached version of library.
 import importlib
 importlib.reload(finger)
-
-doc = App.ActiveDocument
 
 name = 'dot'
 utils.clear_report()
 utils.remove_clones(doc, name)
 
 if not hasattr(doc, name):
-    doc.addObject("Part::Sphere", name)
+    b = doc.addObject("Part::Box", name)
+    b.Height = 10
+    b.Width = 21
+    b.Length = 21
+
 
 box = doc.getObject(name)
 doc.recompute()
 
-h = finger.Hand()
-for f, offset in zip(h.fingers, h.offsets):
+fingers = []
+
+# Middle finger
+fingers.append(
+    Finger(
+        segments=Finger.get_vecs([60, 30, 25]),
+        rows=[Row(resting=Row.get_rots([0, 0, 5])),
+              Row(resting=Row.get_rots([5, 15, 15])),
+              Row(resting=Row.get_rots([20, 45, 25]))]
+    ))
+
+# Index finger
+fingers.append(
+    Finger(
+        offset=Vector(30, 5, 0),
+        segments=Finger.get_vecs([55, 25, 20]),
+        rows=[Row(resting=Row.get_rots([0, 0, 5])),
+              Row(resting=Row.get_rots([5, 15, 15])),
+              Row(resting=Row.get_rots([20, 45, 25])),
+              Row(resting=Row.get_rots([30, 90, 45]))]
+    ))
+
+
+h = finger.Hand(fingers=fingers)
+for f in h.fingers:
     for r in f.rows:
         c_box = doc.copyObject(box)
-        c_box.Placement = App.Placement(f.get_pos(r, offset=offset),
-                                        App.Rotation(0, 0, 0),
-                                        App.Vector(5, 5, 5))
+        c_box.Placement = Placement(f.get_pos(r.resting),
+                                    Rotation(),
+                                    Vector(5, 5, 5))
         doc.recompute()
         print(c_box.Name, c_box.Placement)
-
-# TODO: Copy and place a grid of these boxes.
-doc.recompute()
