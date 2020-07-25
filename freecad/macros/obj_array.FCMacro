@@ -1,16 +1,32 @@
-import FreeCAD
+import FreeCAD as App
 import Part
 from PySide import QtGui
+import utils
+from finger import Finger
 
-mw = Gui.getMainWindow()
-r = mw.findChild(QtGui.QTextEdit, "Report view")
-r.clear()
+doc = App.ActiveDocument
 
-doc = FreeCAD.ActiveDocument
+utils.clear_report()
+utils.remove_clones(doc, 'aBox')
+
 if not hasattr(doc, 'aBox'):
-    box = doc.addObject("Part::Box", 'aBox')
+    doc.addObject("Part::Box", 'aBox')
 
+box = doc.aBox
+doc.recompute()
+
+boxes = []
+for i in range(1, 5):
+    c_box = doc.copyObject(box)
+    boxes.append(c_box)
+    c_box.Placement = App.Placement(App.Vector(0, 0, 0),
+                                    App.Rotation(0, 0, 10),
+                                    App.Vector(5, 5, 5))
+    doc.recompute()
+    print(i, c_box.Name, c_box.Placement)
 
 # TODO: Copy and place a grid of these boxes.
-
 doc.recompute()
+
+f = Finger(prox_mm=22)
+print('hi, this is python.', f, f.get_total(), f.get_pos())

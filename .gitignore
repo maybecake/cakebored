@@ -1,4 +1,14 @@
 # generated 3d files.
 *.gcode
 *.stl
+
+# backup files
 *.FCStd1
+
+# Custom VScode style settings
+.vscode/
+.editorconfig
+# Copied attr.ib library so that FreeCAD can use it.
+freecad/macros/attr/
+freecad/macros/__pycache__/
+dist/
