@@ -1,10 +1,8 @@
 import attr
-import math
 import utils
 from FreeCAD import ActiveDocument, Vector, Rotation, Placement
 
-X_AXIS = Vector(1, 0, 0)
-Z_AXIS = Vector(0, 0, 1)
+# TODO: refactor this out so that drawing is optional
 DOC = ActiveDocument
 
 ###############################################################################
@@ -17,41 +15,46 @@ DOC = ActiveDocument
 #
 ###############################################################################
 
+X_AXIS = Vector(1, 0, 0)
+Z_AXIS = Vector(0, 0, 1)
+
 
 @attr.s
 class Row:
     """Represents angles and mechanics required to hit a key in a certain row."""
 
-    # Sidenote: Rotation(Vector(x,y,z),rot_radians) is a quaternion where (x,y,z) is
-    # converted to a unit vector designating the axis of rotation.
+    # Sidenote: Rotation(Vector(x,y,z),rot_radians) is a quaternion where
+    # (x,y,z) is converted to a unit vector designating the axis of rotation.
     # for a fun trip: eater.net/quaternions
 
     # Modifiers for the resting position of finger segments.
     resting = attr.ib(default=[])
 
+    # Specfying the rotation of actuation for the key.
+    actuate_angle = attr.ib(default=None)
+
+    # TODO: investigate inverse kinematics to calcuate and optimize possible
+    # position space.
+
+    # Modifiers for the finger position when actuating a key. This is used to
+    # calcuate the normal vector for the actual angling of the key.
     # It turns out that there may be too many variables involved in calcuating a
     # true actuate positioning due the flexibily of finger in addition to the
     # contour of the finger tip.
-    # Modifiers for the finger position when actuating a key. This is used to
-    # calcuate the normal vector for the actual angling of the key.
     actuate = attr.ib(default=[])
 
-    # Alternate method for specfying the angle of actuation for the keys.
-    actuate_angle = attr.ib(default=None)
-
-    @staticmethod
-    def generate_mods(angles, offsets=None):
+    def generate_resting(self, offsets, angles):
         """Helper for generating modifications from a list of angles."""
-        if offsets is None:
-            offsets = []
-        mods = []
+        self.resting = []
         utils.pad_list(angles, offsets)
-        for a, o in zip(angles, offsets):
-            if isinstance(a, Rotation):
-                mods.append((o or Vector(), a))
+        for angle, offset in zip(angles, offsets):
+            if isinstance(angle, Rotation):
+                self.resting.append((offset or Vector(), angle))
             else:
-                mods.append((o or Vector(), Rotation(X_AXIS, -a)))
-        return mods
+                # Assume angle is a number.
+                self.resting.append(
+                    (offset or Vector(), Rotation(X_AXIS, -angle)))
+        return self
 
     def generate_actuate(self, diffs):
         """Generating an actuate position based.
@@ -61,6 +64,7 @@ class Row:
         """
         self.actuate = []
         utils.pad_list(self.resting, diffs)
+        print(self.resting, diffs)
         for base, diff in zip(self.resting, diffs):
             mod = base
             if diff is not None:
@@ -68,6 +72,7 @@ class Row:
                 (d_off, d_rot) = diff
                 mod = (b_off + (d_off or Vector()), b_rot.multiply(d_rot))
             self.actuate.append(mod)
+        return self
 
 
 @ attr.s
@@ -79,37 +84,35 @@ class Finger:
     # Lengths of the phalanges, ordered from closest from hand to furthest out.
     segments = attr.ib(default=[])
 
-    # list of Row objects, representing modifications to segments.
+    # List of Row objects, representing modifications to segments for each 'row'
+    # of keys.
     rows = attr.ib(default=[])
 
+    # (float R, float G, float B) display color for this finger.
     color = attr.ib(default=(0.2, 0.7, 0.5))
 
-    @staticmethod
-    def _apply_finger_offset(rots, offset):
-        """Helper for applying an initial offset to each row position."""
-        return Row.generate_mods(rots, [offset])
+    def __str__(self):
+        return '{}, {}'.format(self.segments, self.rows)
 
     def generate_segments(self, lengths):
         """Helper for generating a list of finger segment vectors."""
         self.segments = [Vector(0, d, 0) for d in lengths]
         return self
 
-    def generate_rows(self, finger_offset, resting_rows):
-        self.rows = []
-        for rest_row in resting_rows:
+    def add_rows(self, initial_offset, rows):
+        """Appends a list of rows."""
+        for (rest_row, angle) in rows:
             self.rows.append(
-                Row(resting=Finger._apply_finger_offset(rest_row, finger_offset))
+                Row(actuate_angle=Rotation(X_AXIS, angle))
+                .generate_resting([initial_offset], rest_row)
             )
         return self
-
-    def __str__(self):
-        return '{}, {}'.format(self.segments, self.rows)
 
     def get_pos(self, row_index, draw=False):
         """Returns position vector for the resting tip of this finger.
 
         args:
-            row: List of (Vector, Rotation) to modify segment based on previous.
+            row: List of(Vector, Rotation) to modify segment based on previous.
             draw: Wether to draw the segments.
             trans: Transparency of segment.
 
@@ -117,19 +120,23 @@ class Finger:
             (Vector, rot) end position and rotation for normalizing key.
         """
         row = self.rows[row_index]
-        if not row.actuate:
-            row.generate_actuate([(None, Rotation(X_AXIS, -2))])
-
         rest_v = self._get_pos(row.resting, draw)
-        act_v = self._get_pos(row.actuate, draw, trans=80)
-        rot = Rotation(Z_AXIS, rest_v - act_v)
+        rot = row.actuate_angle
+
+        if not rot:
+            # If actuation angle is not defined, calcuate with actuate position.
+            if not row.actuate:
+                row.generate_actuate([(None, Rotation(X_AXIS, -2))])
+            act_v = self._get_pos(row.actuate, draw, trans=80)
+            rot = Rotation(Z_AXIS, rest_v - act_v)
+
         return rest_v, rot
 
-    def _get_pos(self, row, draw, trans=0):
+    def _get_pos(self, mods, draw, trans=0):
         # Base vector for each section.
         base_v = Vector()
         rot_cumulative = Rotation()
-        for seg, (off, rot) in zip(self.segments, row):
+        for seg, (off, rot) in zip(self.segments, mods):
             base_v += off
             rot_cumulative = rot_cumulative.multiply(rot)
             if draw:
@@ -148,3 +155,8 @@ class Finger:
         c.Placement.Base = base_v
         c.Placement.Rotation = rot.multiply(Rotation(X_AXIS, 270))
         DOC.recompute()
+
+    @ staticmethod
+    def _apply_finger_offset(rots, offset):
+        """Helper for applying an initial offset to each row position."""
+        return Row.generate_mods(rots, [offset])

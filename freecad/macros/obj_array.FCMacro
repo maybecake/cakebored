@@ -13,23 +13,23 @@ utils.clear_report()
 utils.remove_all(doc)
 
 
-def add_box():
-    b = doc.addObject("Part::Box", 'box')
-    b.Height = 10
-    b.Width = 21
-    b.Length = 21
-    return b
+def add_key():
+    key = doc.copyObject(doc.getObjectsByLabel("key")[0])
+    key.ViewObject.Visibility = True
+    return key
 
 
 def draw_hand(fingers):
+    """ Goes through finger and draws the keys."""
     for f in fingers:
         for i, _ in enumerate(f.rows):
             v, rot = f.get_pos(i, draw=True)
-            box = add_box()
+            key = add_key()
             # Used to rotate and position at top of box.
-            center_v = Vector(box.Width/2, box.Length/2, box.Height)
-            box.Placement = Placement(v - center_v,
-                                      rot,
+            center_v = Vector(0, 0, key.Shape.BoundBox.ZMin)
+            key.Placement = Placement(v - center_v,
+                                      rot.multiply(
+                                          Rotation(finger.X_AXIS, 180)),
                                       center_v)
             doc.recompute()
 
@@ -61,17 +61,12 @@ hand = []
 
 # Index finger
 hand.append(
-    Finger().generate_segments([55, 25, 20]).generate_rows(Vector(70, 8, 0),
-                                                           [[10, 10, 10], [15, 30, 30]])
-    # Finger(
-    #     segments=Finger.generate_segments([55, 25, 20]),
-    #     rows=generate_finger_rows(Vector(70, 8, 0),
-    #                               [[10, 10, 10], [15, 30, 30]])
-
-    # rows=[Row(resting=apply_finger_offset([0, 0, 5], index_offset_stretch)),
-    #       Row(resting=apply_finger_offset([5, 15, 15], finger_offsets[3])),
-    #       Row(resting=apply_finger_offset([20, 45, 25], finger_offsets[3])),
-    #       Row(resting=apply_finger_offset([30, 90, 45], finger_offsets[3]))]
+    Finger()
+    .generate_segments([55, 25, 20])
+    .add_rows(Vector(70, 8, 0),
+              [([15, 14, 14], 40),
+               ([15, 27, 27], 5),
+               ([16, 45, 45], -15)])
 )
 
 # Index finger - secondary position
