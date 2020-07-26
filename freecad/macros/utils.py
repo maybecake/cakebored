@@ -22,8 +22,11 @@ def debug(doc, verbose=False):
                 print(obj.Shape.Wires, obj.Shape.Edges, obj.Shape.Vertexes)
 
 
-def remove_clones(doc, obj_str):
+def remove_clones(doc, obj_str, all=False):
     """Removes created array of clone objects."""
+    if all:
+        if hasattr(doc, obj_str):
+            doc.removeObject(obj_str)
     i = 1
     while True:
         attr = '{}{:03}'.format(obj_str, i)
