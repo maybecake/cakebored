@@ -1,4 +1,4 @@
-from finger import Hand, Finger, Row
+from finger import Finger, Row
 import finger
 import FreeCAD as App
 import utils
@@ -7,50 +7,91 @@ from FreeCAD import ActiveDocument as doc, Rotation, Vector, Placement
 # This is needed for development since FreeCAD uses cached version of library.
 import importlib
 importlib.reload(finger)
+importlib.reload(utils)
 
-name = 'dot'
 utils.clear_report()
-utils.remove_clones(doc, name)
+utils.remove_all(doc)
 
-if not hasattr(doc, name):
-    b = doc.addObject("Part::Box", name)
+
+def add_box():
+    b = doc.addObject("Part::Box", 'box')
     b.Height = 10
     b.Width = 21
     b.Length = 21
+    return b
 
 
-box = doc.getObject(name)
-doc.recompute()
+def draw_hand(fingers):
+    for f in fingers:
+        for i, _ in enumerate(f.rows):
+            v, rot = f.get_pos(i, draw=True)
+            box = add_box()
+            # Used to rotate and position at top of box.
+            center_v = Vector(box.Width/2, box.Length/2, box.Height)
+            box.Placement = Placement(v - center_v,
+                                      rot,
+                                      center_v)
+            doc.recompute()
 
-fingers = []
 
-# Middle finger
-fingers.append(
-    Finger(
-        segments=Finger.get_vecs([60, 30, 25]),
-        rows=[Row(resting=Row.get_rots([0, 0, 5])),
-              Row(resting=Row.get_rots([5, 15, 15])),
-              Row(resting=Row.get_rots([20, 45, 25]))]
-    ))
+hand = []
+
+# # Pinky
+# hand.append(
+#     Finger(
+#         segments=Finger.generate_segments([40, 20, 20]),
+#         rows=generate_finger_rows(Vector(), [[15, 45, 45]]),
+#     )
+# )
+
+# # Ring finger
+# hand.append(
+#     Finger(
+#         segments=Finger.generate_segments([50, 28, 22]),
+#         rows=generate_finger_rows(Vector(25, 3, 0), [[10, 70, 10]]),
+#     )
+# )
+
+# # Middle finger
+# hand.append(
+#     Finger(
+#         segments=Finger.generate_segments([60, 30, 25]),
+#         rows=generate_finger_rows(Vector(47, 8, 0), [[0, 0, 0], [15, 60, 10]]),
+#     ))
 
 # Index finger
-fingers.append(
-    Finger(
-        offset=Vector(30, 5, 0),
-        segments=Finger.get_vecs([55, 25, 20]),
-        rows=[Row(resting=Row.get_rots([0, 0, 5])),
-              Row(resting=Row.get_rots([5, 15, 15])),
-              Row(resting=Row.get_rots([20, 45, 25])),
-              Row(resting=Row.get_rots([30, 90, 45]))]
-    ))
+hand.append(
+    Finger().generate_segments([55, 25, 20]).generate_rows(Vector(70, 8, 0),
+                                                           [[10, 10, 10], [15, 30, 30]])
+    # Finger(
+    #     segments=Finger.generate_segments([55, 25, 20]),
+    #     rows=generate_finger_rows(Vector(70, 8, 0),
+    #                               [[10, 10, 10], [15, 30, 30]])
 
+    # rows=[Row(resting=apply_finger_offset([0, 0, 5], index_offset_stretch)),
+    #       Row(resting=apply_finger_offset([5, 15, 15], finger_offsets[3])),
+    #       Row(resting=apply_finger_offset([20, 45, 25], finger_offsets[3])),
+    #       Row(resting=apply_finger_offset([30, 90, 45], finger_offsets[3]))]
+)
 
-h = finger.Hand(fingers=fingers)
-for f in h.fingers:
-    for r in f.rows:
-        c_box = doc.copyObject(box)
-        c_box.Placement = Placement(f.get_pos(r.resting),
-                                    Rotation(),
-                                    Vector(5, 5, 5))
-        doc.recompute()
-        print(c_box.Name, c_box.Placement)
+# Index finger - secondary position
+# i_rot=Rotation(finger.Z_AXIS, -20)
+# # Side rotation
+# i_rot_2=i_rot.multiply(Rotation(finger.X_AXIS, -5))
+# i_rot_3=i_rot.multiply(Rotation(finger.X_AXIS, -20))
+# i_rot_4=i_rot.multiply(Rotation(finger.X_AXIS, -40))
+# fingers.append(
+#     Finger(
+#         color=(0.2, 0.2, 0.8),
+#         segments=Finger.get_vecs([55, 25, 20]),
+#         rows=[Row(resting=Row.get_mods([i_rot, 0, 5],
+#                                        [Vector(40, 25, 0)])),
+#               Row(resting=Row.get_mods([i_rot_2, 15, 15],
+#                                        [Vector(40, 25, 0)])),
+#               Row(resting=Row.get_mods([i_rot_3, 45, 25],
+#                                        [Vector(40, 25, 0)])),
+#               Row(resting=Row.get_mods([i_rot_4, 90, 45],
+#                                        [Vector(40, 25, 0)]))]
+#     ))
+
+draw_hand(hand)

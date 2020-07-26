@@ -32,3 +32,15 @@ def remove_clones(doc, obj_str):
         else:
             break
         i += 1
+
+
+def remove_all(doc):
+    """Removes all objects in document."""
+    for obj in doc.Objects:
+        doc.removeObject(obj.Name)
+
+
+def pad_list(longer, shorter):
+    """Pads shorter list to same length as longer list with Nones."""
+    if len(longer) > len(shorter):
+        shorter += [None] * (len(longer) - len(shorter))
