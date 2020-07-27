@@ -21,14 +21,14 @@ Z_AXIS = Vector(0, 0, 1)
 
 @attr.s
 class Row:
-    """Represents angles and mechanics required to hit a key in a certain row."""
+    """Represents offsets and angles required to hit a key in a certain row."""
 
     # Sidenote: Rotation(Vector(x,y,z),rot_radians) is a quaternion where
     # (x,y,z) is converted to a unit vector designating the axis of rotation.
     # for a fun trip: eater.net/quaternions
 
     # Modifiers for the resting position of finger segments.
-    resting = attr.ib(default=[])
+    resting = attr.ib(default=attr.Factory(list))
 
     # Specfying the rotation of actuation for the key.
     actuate_angle = attr.ib(default=None)
@@ -41,7 +41,7 @@ class Row:
     # It turns out that there may be too many variables involved in calcuating a
     # true actuate positioning due the flexibily of finger in addition to the
     # contour of the finger tip.
-    actuate = attr.ib(default=[])
+    actuate = attr.ib(default=attr.Factory(list))
 
     def generate_resting(self, offsets, angles):
         """Helper for generating modifications from a list of angles."""
@@ -78,15 +78,15 @@ class Row:
 @ attr.s
 class Finger:
     """A single finger's columns."""
-    # Offset of knuckle
-    offset = attr.ib(default=Vector())
+    # Hint: A knuckle offset can be set as an offset in the first modifier in
+    # the Row position modifiers.
 
     # Lengths of the phalanges, ordered from closest from hand to furthest out.
-    segments = attr.ib(default=[])
+    segments = attr.ib(default=attr.Factory(list))
 
     # List of Row objects, representing modifications to segments for each 'row'
     # of keys.
-    rows = attr.ib(default=[])
+    rows = attr.ib(default=attr.Factory(list))
 
     # (float R, float G, float B) display color for this finger.
     color = attr.ib(default=(0.2, 0.7, 0.5))
@@ -101,11 +101,11 @@ class Finger:
 
     def add_rows(self, initial_offset, rows):
         """Appends a list of rows."""
+        print(self.rows)
         for (rest_row, angle) in rows:
-            self.rows.append(
-                Row(actuate_angle=Rotation(X_AXIS, angle))
-                .generate_resting([initial_offset], rest_row)
-            )
+            row = Row(actuate_angle=Rotation(X_AXIS, angle))
+            row.generate_resting([initial_offset], rest_row)
+            self.rows.append(row)
         return self
 
     def get_pos(self, row_index, draw=False):

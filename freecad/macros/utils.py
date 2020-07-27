@@ -40,10 +40,6 @@ def remove_clones(doc, obj_str, all=False):
 def remove_all(doc):
     """Removes (almost) all objects in document."""
     for obj in doc.Objects:
-        if obj.Label == "key":
-            continue
-        if hasattr(obj, 'TypeId') and obj.TypeId == "Spreadsheet::Sheet":
-            continue
         doc.removeObject(obj.Name)
 
 
