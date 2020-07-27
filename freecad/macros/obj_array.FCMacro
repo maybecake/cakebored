@@ -1,4 +1,4 @@
-from FreeCAD import ActiveDocument as doc, Rotation, Vector, Placement
+from FreeCAD import Rotation, Vector, Placement
 from finger import Finger, Row
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -10,20 +10,33 @@ import importlib
 importlib.reload(finger)
 importlib.reload(utils)
 
+# Document that stores the 'key' object and Spreadsheet for variables.
+source_doc = App.getDocument('Case')
+doc = App.ActiveDocument
+
+# Tried to use the same document as source of object and generated shapes. It's
+# a huge headache, trust me.
+if source_doc == doc:
+    raise EnvironmentError('Run macro in different document.')
+
 utils.clear_report()
-# utils.remove_all(doc)
+utils.remove_all(doc)
 
-utils.remove_clones(doc, 'print', all=True)
-utils.remove_clones(doc, 'surfjoin', all=True)
-utils.remove_clones(doc, 'surf', all=True)
-utils.remove_clones(doc, 'cone', all=True)
-utils.remove_clones(doc, 'Fusion')
+DRAW_FINGERS = True  # Draw the cones to represent fingers.
+FUSE = True          # Fuse the generated keys together.
 
-KEY_HEIGHT = -13.8
+# TODO: Generate the geometry needed to create the inter-key webbing instead of
+# hard coding the edges from the key model.
+PREV_KEY_EDGE = 'Edge98'   # Edges used to create the column webbing.
+NEXT_KEY_EDGE = 'Edge102'  # These are required for fusing to work.
+
+KEY_HEIGHT = -13.8    # Key was modeled in the negative z direction.
+KEY_ROT = Rotation(finger.X_AXIS, 180)  # Apply correct orientation.
 
 
 def add_key():
-    key = doc.copyObject(doc.getObjectsByLabel("key")[0])
+    """Copies the key from source document."""
+    key = doc.copyObject(source_doc.getObjectsByLabel("key")[0])
     key.ViewObject.Visibility = True
     return key
 
@@ -31,46 +44,47 @@ def add_key():
 def draw_hand(fingers):
     """ Goes through finger and draws the keys."""
     for f in fingers:
-        merge = []
+        shapes_to_merge = []
         prev_key = None
         surfs = []
         for i, _ in enumerate(f.rows):
-            v, rot = f.get_pos(i, draw=True)
+            print('adding:', i)
+            v, rot = f.get_pos(i, draw=DRAW_FINGERS)
             key = add_key()
             # Used to rotate and position at top of box.
             center_v = Vector(0, 0, KEY_HEIGHT)  # key.Shape.BoundBox.ZMin)
             key.Placement = Placement(v - center_v,
-                                      rot.multiply(
-                                          Rotation(finger.X_AXIS, 180)),
+                                      rot.multiply(KEY_ROT),
                                       center_v)
             doc.recompute()
 
-            if prev_key:
+            if FUSE and prev_key:
                 surface = doc.addObject('Part::RuledSurface', 'surf')
-                surface.Curve1 = (prev_key, ['Edge258'])
-                surface.Curve2 = (key, ['Edge262'])
-                # TODO: extrude doc.Spreadsheet.BaseWidth
+                surface.Curve1 = (prev_key, [PREV_KEY_EDGE])
+                surface.Curve2 = (key, [NEXT_KEY_EDGE])
                 surfs.append(surface)
                 doc.recompute()
             prev_key = key
-            merge.append(key)
+            shapes_to_merge.append(key)
 
-        for surf in surfs:
-            f = doc.addObject('Part::Extrusion', 'surfjoin')
-            f.Base = surf
-            f.Solid = True
-            f.DirMode = "Custom"
-            f.Dir = Vector(-1, 0, 0)
-            f.LengthFwd = doc.Spreadsheet.BaseWidth
-            merge.append(f)
-            doc.recompute()
+        if FUSE:
+            for surf in surfs:
+                webbing = doc.addObject('Part::Extrusion', 'surfjoin')
+                webbing.Base = surf
+                webbing.Solid = True
+                webbing.DirMode = "Custom"
+                webbing.Dir = Vector(-1, 0, 0)
+                webbing.LengthFwd = source_doc.Spreadsheet.BaseWidth
+                shapes_to_merge.append(webbing)
+                doc.recompute()
 
         # Fuse and select for printing.
-        pr = doc.addObject("Part::MultiFuse", "print001")
-        pr.Shapes = merge
-        doc.recompute()
-        print(pr.TypeId)
-        Gui.Selection.addSelection(pr)
+        if FUSE:
+            print(shapes_to_merge)
+            pr = doc.addObject("Part::MultiFuse", "stl_export")
+            pr.Shapes = shapes_to_merge
+            doc.recompute()
+            Gui.Selection.addSelection(pr)
 
 
 hand = []
@@ -91,22 +105,21 @@ hand = []
 #     )
 # )
 
-# # Middle finger
-# hand.append(
-#     Finger(
-#         segments=Finger.generate_segments([60, 30, 25]),
-#         rows=generate_finger_rows(Vector(47, 8, 0), [[0, 0, 0], [15, 60, 10]]),
-#     ))
+# Middle finger
+hand.append(
+    Finger()
+    .generate_segments([60, 30, 25])
+    .add_rows(Vector(47, 8, 0),
+              [([0, 0, 0], 40),
+               ([15, 60, 10], 5)]))
 
 # Index finger
 hand.append(
     Finger()
     .generate_segments([55, 25, 20])
-    .add_rows(Vector(70, 8, 0),
-              [([15, 14, 14], 40),
-               ([15, 27, 27], 5),
-               ([16, 45, 45], -15)])
-)
+    .add_rows(Vector(70, 8, 0), [([18, 5, 5], 50),
+                                 ([15, 27, 27], 25),
+                                 ([16, 45, 45], 0)]))
 
 # Index finger - secondary position
 # i_rot=Rotation(finger.Z_AXIS, -20)
