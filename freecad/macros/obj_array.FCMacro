@@ -23,12 +23,12 @@ utils.clear_report()
 utils.remove_all(doc)
 
 DRAW_FINGERS = True  # Draw the cones to represent fingers.
-FUSE = True          # Fuse the generated keys together.
+FUSE_COLS = True     # Fuse the generated columns together.
 
 # TODO: Generate the geometry needed to create the inter-key webbing instead of
 # hard coding the edges from the key model.
-PREV_KEY_EDGE = 'Edge98'   # Edges used to create the column webbing.
-NEXT_KEY_EDGE = 'Edge102'  # These are required for fusing to work.
+PREV_KEY_EDGE = 'Edge75'   # Edges used to create the column webbing.
+NEXT_KEY_EDGE = 'Edge79'  # These are required for fusing to work.
 
 KEY_HEIGHT = -13.8    # Key was modeled in the negative z direction.
 KEY_ROT = Rotation(finger.X_AXIS, 180)  # Apply correct orientation.
@@ -58,7 +58,7 @@ def draw_hand(fingers):
                                       center_v)
             doc.recompute()
 
-            if FUSE and prev_key:
+            if FUSE_COLS and prev_key:
                 surface = doc.addObject('Part::RuledSurface', 'surf')
                 surface.Curve1 = (prev_key, [PREV_KEY_EDGE])
                 surface.Curve2 = (key, [NEXT_KEY_EDGE])
@@ -67,7 +67,7 @@ def draw_hand(fingers):
             prev_key = key
             shapes_to_merge.append(key)
 
-        if FUSE:
+        if FUSE_COLS:
             for surf in surfs:
                 webbing = doc.addObject('Part::Extrusion', 'surfjoin')
                 webbing.Base = surf
@@ -79,7 +79,7 @@ def draw_hand(fingers):
                 doc.recompute()
 
         # Fuse and select for printing.
-        if FUSE:
+        if FUSE_COLS:
             print(shapes_to_merge)
             pr = doc.addObject("Part::MultiFuse", "stl_export")
             pr.Shapes = shapes_to_merge
@@ -110,7 +110,7 @@ hand.append(
     Finger()
     .generate_segments([60, 30, 25])
     .add_rows(Vector(47, 8, 0),
-              [([0, 0, 0], 40),
+              [([18, 5, 5], 40),
                ([15, 60, 10], 5)]))
 
 # Index finger
