@@ -7,6 +7,19 @@ There are several aspects of the keyboard structure:
 1. Key positioning
 1. Webbing between each key base
 
+
+### Coordinate system
+
+ Coordinate system assumes hand looks like this:
+
+```
+     | | | |          ^
+     | | | |  /       |
+     | | | | /        Y
+     O O O O        <Z|-X->  (Z is going away from you!)
+
+```
+
 ### Key positioning
 
 There are three types of key positions:
@@ -28,8 +41,8 @@ instead.
 
 ### Webbing
 
-The individual key structure for retaining the key PCB, switch and keycaps were
-modeled by hand. (Maybe we should switch to doing this programatically?). These
+The individual key structure for retaining the key PCB, switch and key caps were
+modeled by hand. (Maybe we should switch to doing this programmatically?). These
 key bases all need to joined together to form the 3d shell of the keyboard.
 
 The key_base.py module contains classes that generates this shell based on the
