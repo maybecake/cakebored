@@ -10,15 +10,28 @@ There are several aspects of the keyboard structure:
 
 ### Coordinate system
 
- Coordinate system assumes hand looks like this:
+Put your left hand flat on the table, the coordinate system looks like this:
 
 ```
      | | | |          ^
      | | | |  /       |
      | | | | /        Y
-     O O O O        <Z|-X->  (Z is going away from you!)
+     O O O O        <Z|-X->  (Z is going AWAY from you!)
 
 ```
+
+For those, like me, who have trouble mapping coordinates to space, this means:
+
+* Positive X = towards the thumb.
+* Positive Y = further away from the user, towards top row of keys.
+* Negative Z = higher off the table.
+* Using X_AXIS as a rotation vector, negative angles tilt the keys
+towards the user.
+
+Since the two half of the keyboard are likely to be symmetrical, only the left
+hand needs to be considered. If the two sides are NOT symmetrical, it should be
+easy to generate a new layout based on the right hand measurements and just
+mirror the final output model.
 
 ### Key positioning
 
