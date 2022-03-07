@@ -26,7 +26,7 @@ class Row:
     resting: List = field(default_factory=lambda: [])
 
     # Rotation of actuation for the key.
-    actuate_angle: Rotation = field(default=None)
+    actuate_angle: Rotation = None
 
     # TODO: investigate inverse kinematics to calculate and optimize possible
     # position space.
@@ -87,7 +87,7 @@ class Finger:
     keys: List = field(default_factory=lambda: [])
 
     # (float R, float G, float B) display color for this finger.
-    color: List = field(default=(0.2, 0.7, 0.5))
+    color: List = (0.2, 0.7, 0.5)
 
     def __str__(self):
         return '{}, {}'.format(self.segments, self.rows)
