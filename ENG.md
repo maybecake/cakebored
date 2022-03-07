@@ -47,10 +47,10 @@ The finger.py module contains classes that calculate and store the positions for
 the keys. Finger measurements are fed into the Finger classes to generate the
 positions.
 
-An initial idea was to use differences in angle to calculate the angle used to
-depress a key. However, in practice, this doesn't seem to be very ~useful~
-correct and is overly complicated. A simplified manually entered angle is used
-instead.
+An initial idea was to use differences in finger position and angle to calculate
+the angle used to depress a key. However, in practice, this doesn't seem to be
+very ~useful~ correct and is overly complicated. A simplified manually entered
+angle is used instead.
 
 ### Webbing
 
