@@ -1,0 +1,73 @@
+from FreeCAD import ActiveDocument, Vector, Rotation, Placement
+import FreeCADGui as Gui
+import Part
+import Draft
+from PySide import QtGui
+import DraftVecUtils as DVU
+import collections
+
+import importlib
+import utils
+
+mw = Gui.getMainWindow()
+r = mw.findChild(QtGui.QTextEdit, "Report view")
+r.clear()
+
+# This is needed for development since FreeCAD uses cached version of library.
+# importlib.reload(finger)
+importlib.reload(utils)
+
+utils.clear_report()
+utils.remove_all(ActiveDocument)
+
+X_AXIS = Vector(1, 0, 0)
+Y_AXIS = Vector(0, 1, 0)
+Z_AXIS = Vector(0, 0, 1)
+
+# Just testing joining some boxes together.
+boxes = []
+boxes.append(Part.makeBox(5, 4, 1))
+boxes.append(Part.makeBox(5, 4, 1))
+boxes[1].Placement = Placement(Vector(10, 0, 0), Rotation(Z_AXIS, -30))
+
+
+def connect(boxV, boxW):
+    # This is probably not a very good way to go around building the webbing
+    # between tiles. It's bad due to it being a pretty heuristic heavy way to
+    # connect the point and likely would not work well in all circumstances. A
+    # better way is to actually construct the original box solids themselves so
+    # that the exact vertices to be connected are already well defined.
+    vPoints = [v.Point for v in boxV.Vertexes]
+    wPoints = [w.Point for w in boxW.Vertexes]
+
+    # Build an ordered (by distance) dictionary between each source and
+    # destination points
+    distances = []
+    for vp in vPoints:
+        vdm = collections.OrderedDict()
+        for wp in wPoints:
+            d = DVU.dist(vp, wp)
+            vdm[d] = (d, wp)
+        distances.append((vdm))
+
+    # Match up the closest set of points
+    exclude = []
+    for i in range(4):
+        min, mvp, mwp = None, None, None
+        for vp, dists in zip(vPoints, distances):
+            if vp in exclude:
+                continue
+            for d, (_, wp) in dists.items():
+                if wp in exclude or min and min <= d:
+                    continue
+                min, mvp, mwp = d, vp, wp
+        if mvp and mwp
+        line = Part.makeLine(mvp, mwp)
+        Part.show(line)
+        exclude.append(mvp)
+        exclude.append(mwp)
+
+
+for b in boxes:
+    Part.show(b)
+connect(boxes[0], boxes[1])
