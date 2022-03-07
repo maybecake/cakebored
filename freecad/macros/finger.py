@@ -1,6 +1,8 @@
 """Finger position objects."""
 
-import attr
+from dataclasses import dataclass, field
+from email.policy import default
+from typing import List
 import utils
 from FreeCAD import ActiveDocument, Vector, Rotation, Placement
 
@@ -8,21 +10,11 @@ from FreeCAD import ActiveDocument, Vector, Rotation, Placement
 # TODO: refactor this out so that drawing is optional
 DOC = ActiveDocument
 
-###############################################################################
-# Coordinate system assumes hand looks like this:
-#
-#     | | | |          ^
-#     | | | |  /       |
-#     | | | | /        Y
-#     O O O O        <Z|-X->  (Z is going away from you!)
-#
-###############################################################################
-
 X_AXIS = Vector(1, 0, 0)
 Z_AXIS = Vector(0, 0, 1)
 
 
-@attr.s
+@dataclass
 class Row:
     """Represents offsets and angles required to hit a key in a certain row."""
 
@@ -31,20 +23,20 @@ class Row:
     # for a fun trip: eater.net/quaternions
 
     # Modifiers for the resting position of finger segments.
-    resting = attr.ib(default=attr.Factory(list))
+    resting: List = field(default_factory=lambda: [])
 
-    # Specfying the rotation of actuation for the key.
-    actuate_angle = attr.ib(default=None)
+    # Rotation of actuation for the key.
+    actuate_angle: Rotation = field(default=None)
 
-    # TODO: investigate inverse kinematics to calcuate and optimize possible
+    # TODO: investigate inverse kinematics to calculate and optimize possible
     # position space.
 
     # Modifiers for the finger position when actuating a key. This is used to
-    # calcuate the normal vector for the actual angling of the key.
-    # It turns out that there may be too many variables involved in calcuating a
-    # true actuate positioning due the flexibily of finger in addition to the
-    # contour of the finger tip.
-    actuate = attr.ib(default=attr.Factory(list))
+    # calculate the normal vector for the actual angling of the key. It turns
+    # out that there may be too many variables involved in calculating a true
+    # actuate positioning due the flexibly of finger in addition to the contour
+    # of the finger tip.
+    actuate: List = field(default_factory=lambda: [])
 
     def generate_resting(self, offsets, angles):
         """Helper for generating modifications from a list of angles."""
@@ -78,24 +70,24 @@ class Row:
         return self
 
 
-@ attr.s
+@dataclass
 class Finger:
     """A single finger's columns."""
     # Hint: A knuckle offset can be set as an offset in the first modifier in
     # the Row position modifiers.
 
     # Lengths of the phalanges, ordered from closest from hand to furthest out.
-    segments = attr.ib(default=attr.Factory(list))
+    segments: List = field(default_factory=lambda: [])
 
     # List of Row objects, representing modifications to segments for each 'row'
     # of keys.
-    rows = attr.ib(default=attr.Factory(list))
+    rows: List = field(default_factory=lambda: [])
 
     # Key object associated with this finger.
-    keys = attr.ib(default=attr.Factory(list))
+    keys: List = field(default_factory=lambda: [])
 
     # (float R, float G, float B) display color for this finger.
-    color = attr.ib(default=(0.2, 0.7, 0.5))
+    color: List = field(default=(0.2, 0.7, 0.5))
 
     def __str__(self):
         return '{}, {}'.format(self.segments, self.rows)
@@ -130,7 +122,8 @@ class Finger:
         rot = row.actuate_angle
 
         if not rot:
-            # If actuation angle is not defined, calcuate with actuate position.
+            # If actuation angle is not defined, calculate with actuate
+            # position.
             if not row.actuate:
                 row.generate_actuate([(None, Rotation(X_AXIS, -2))])
             act_v = self._get_pos(row.actuate, draw, trans=80)
