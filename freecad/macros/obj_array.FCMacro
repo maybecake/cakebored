@@ -11,19 +11,22 @@ importlib.reload(finger)
 importlib.reload(utils)
 
 # Document that stores the 'key' object and Spreadsheet for variables.
+# key document contains the model for a single key support
 source_doc = App.getDocument('Case')
 doc = App.ActiveDocument
 
 # Tried to use the same document as source of object and generated shapes. It's
 # a huge headache, trust me.
 if source_doc == doc:
-    raise EnvironmentError('Run macro in different document.')
+    raise EnvironmentError('Run macro in different document than the Case '
+                           'document that contains the key model.')
 
 utils.clear_report()
 utils.remove_all(doc)
 
-DRAW_FINGERS = True  # Draw the cones to represent fingers.
-FUSE_COLS = True     # Fuse the generated columns together.
+DRAW_FINGERS = True               # Draw the cones to represent fingers.
+DRAW_KEYS = True                 # Draw the actual keys.
+FUSE_COLS = True and DRAW_KEYS    # Fuse the generated columns together.
 
 # TODO: Generate the geometry needed to create the inter-key webbing instead of
 # hard coding the edges from the key model.
@@ -47,25 +50,28 @@ def draw_hand(fingers):
         shapes_to_merge = []
         prev_key = None
         surfs = []
+        f.keys = []
         for i, _ in enumerate(f.rows):
             print('adding:', i)
             v, rot = f.get_pos(i, draw=DRAW_FINGERS)
-            key = add_key()
-            # Used to rotate and position at top of box.
-            center_v = Vector(0, 0, KEY_HEIGHT)  # key.Shape.BoundBox.ZMin)
-            key.Placement = Placement(v - center_v,
-                                      rot.multiply(KEY_ROT),
-                                      center_v)
-            doc.recompute()
-
-            if FUSE_COLS and prev_key:
-                surface = doc.addObject('Part::RuledSurface', 'surf')
-                surface.Curve1 = (prev_key, [PREV_KEY_EDGE])
-                surface.Curve2 = (key, [NEXT_KEY_EDGE])
-                surfs.append(surface)
+            if DRAW_KEYS:
+                key = add_key()
+                f.keys.append(key)
+                # Used to rotate and position at top of box.
+                center_v = Vector(0, 0, KEY_HEIGHT)  # key.Shape.BoundBox.ZMin)
+                key.Placement = Placement(v - center_v,
+                                          rot.multiply(KEY_ROT),
+                                          center_v)
                 doc.recompute()
-            prev_key = key
-            shapes_to_merge.append(key)
+
+                if FUSE_COLS and prev_key:
+                    surface = doc.addObject('Part::RuledSurface', 'surf')
+                    surface.Curve1 = (prev_key, [PREV_KEY_EDGE])
+                    surface.Curve2 = (key, [NEXT_KEY_EDGE])
+                    surfs.append(surface)
+                    doc.recompute()
+                prev_key = key
+                shapes_to_merge.append(key)
 
         if FUSE_COLS:
             for surf in surfs:
@@ -142,3 +148,6 @@ hand.append(
 #     ))
 
 draw_hand(hand)
+
+for fing in hand:
+    print(fing.keys)

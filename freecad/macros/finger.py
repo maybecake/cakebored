@@ -1,6 +1,9 @@
+"""Finger position objects."""
+
 import attr
 import utils
 from FreeCAD import ActiveDocument, Vector, Rotation, Placement
+
 
 # TODO: refactor this out so that drawing is optional
 DOC = ActiveDocument
@@ -88,6 +91,9 @@ class Finger:
     # of keys.
     rows = attr.ib(default=attr.Factory(list))
 
+    # Key object associated with this finger.
+    keys = attr.ib(default=attr.Factory(list))
+
     # (float R, float G, float B) display color for this finger.
     color = attr.ib(default=(0.2, 0.7, 0.5))
 
@@ -132,6 +138,17 @@ class Finger:
 
         return rest_v, rot
 
+    def get_base_pos(self, unused_row_index):
+        """Returns the position of the verticies for the base of the key.
+
+        args:
+            row_index:
+        returns:
+            Vector position for the key base.
+        """
+        # rest_v, rot = self.get_pos(row_index)
+        return
+
     def _get_pos(self, mods, draw, trans=0):
         # Base vector for each section.
         base_v = Vector()
@@ -156,7 +173,8 @@ class Finger:
         c.Placement.Rotation = rot.multiply(Rotation(X_AXIS, 270))
         DOC.recompute()
 
-    @ staticmethod
-    def _apply_finger_offset(rots, offset):
-        """Helper for applying an initial offset to each row position."""
-        return Row.generate_mods(rots, [offset])
+    # Unused?
+    # @ staticmethod
+    # def _apply_finger_offset(rots, offset):
+    #     """Helper for applying an initial offset to each row position."""
+    #     return Row.generate_mods(rots, [offset])
