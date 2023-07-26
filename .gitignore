@@ -12,3 +12,6 @@
 freecad/macros/attr/
 freecad/macros/__pycache__/
 dist/
+
+# Any node modules - for three.js
+node_module
