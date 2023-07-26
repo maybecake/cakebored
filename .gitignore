@@ -15,3 +15,4 @@ dist/
 
 # Any node modules - for three.js
 node_modules
+dist
