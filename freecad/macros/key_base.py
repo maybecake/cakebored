@@ -37,8 +37,6 @@ class KeyBase:
     vectors: Dict[str, Vector] = field(default_factory=make_box)
 
     def draw(self):
-        print(self.vectors)
-
         lines = []
         names = list(itertools.product(
             *[['far'], ['left', 'right'], ['top', 'bottom']]))
