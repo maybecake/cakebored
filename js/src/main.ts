@@ -1,6 +1,8 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as THREE from "three";
+import Stats from "three/addons/libs/stats.module.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
+import { GPUStatsPanel } from "three/addons/utils/GPUStatsPanel.js";
 
 function createPerspectiveCamera() {
   return new THREE.PerspectiveCamera(
@@ -24,16 +26,18 @@ function createOrthoCamera() {
   );
 }
 
-const scene = new THREE.Scene();
-const camera = createPerspectiveCamera();
+function createLight() {
+  // note: light target position is not used and defaults to origin.
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.body.appendChild(renderer.domElement);
+  const color = 0xffffff;
+  const intensity = 1;
+  const light = new THREE.DirectionalLight(color, intensity);
+  light.castShadow = true;
+  light.position.set(2, 100, 2);
+  light.shadow.mapSize.width = 2048;
+  light.shadow.mapSize.height = 2048;
+  return light;
+}
 
 function createPlane(size: number) {
   const loader = new THREE.TextureLoader();
@@ -56,7 +60,7 @@ function createPlane(size: number) {
   return mesh;
 }
 
-function createCube() {
+function createCube(): THREE.Mesh {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({
     color: 0x306050,
@@ -71,8 +75,8 @@ function createCube() {
   return cube;
 }
 
-function createWireframe() {
-  const geo = new THREE.EdgesGeometry(cube.geometry); // or WireframeGeometry
+function createWireframe(mesh: THREE.Mesh) {
+  const geo = new THREE.EdgesGeometry(mesh.geometry); // or WireframeGeometry
   const mat = new THREE.LineBasicMaterial({
     color: 0xffffff,
     linewidth: 2,
@@ -100,55 +104,77 @@ function rotateObjects(
   }
 }
 
+// Set up scene
+const scene = new THREE.Scene();
+const camera = createPerspectiveCamera();
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+camera.position.set(3, 3, 5);
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+
+scene.add(createLight());
+scene.add(new THREE.AmbientLight(0x333333));
+
+// Add meshes
 scene.add(createPlane(12));
-const cube = createCube();
-scene.add(cube);
-const wireframe = createWireframe();
-scene.add(wireframe);
-
-positionObjects([cube, wireframe], new THREE.Vector3(0.6, 0.6, 0.6));
-
 scene.add(new THREE.AxesHelper(2));
 
-camera.position.set(2, 2, 5);
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.target.copy(cube.position);
+const cube = createCube();
+scene.add(cube);
+const wireframe = createWireframe(cube);
+scene.add(wireframe);
+positionObjects([cube, wireframe], new THREE.Vector3(0.6, 0.6, 0.6));
 
-scene.add(new THREE.AmbientLight(0x404040)); // soft white light
-
-const color = 0xffffff;
-const intensity = 1;
-const light = new THREE.DirectionalLight(color, intensity);
-light.castShadow = true;
-light.position.set(0, 10, 0);
-light.target.position.copy(cube.position);
-light.shadow.mapSize.width = 2048;
-light.shadow.mapSize.height = 2048;
-scene.add(light);
-scene.add(light.target);
+// Add stats
+const stats = new Stats();
+document.body.appendChild(stats.dom);
+const gpuPanel = new GPUStatsPanel(renderer.getContext());
+stats.addPanel(gpuPanel);
+stats.showPanel(0);
 
 function animate() {
+  stats.update();
+
   requestAnimationFrame(animate);
   rotateObjects([cube, wireframe], 0.01, 0.02, 0.03);
+  gpuPanel.startQuery();
   renderer.render(scene, camera);
+  gpuPanel.endQuery();
+}
+
+window.addEventListener("resize", onWindowResize);
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 animate();
 
-// const link = document.createElement("a");
-// link.style.display = "none";
-// document.body.appendChild(link);
+const link = document.createElement("a");
+link.style.display = "none";
+document.body.appendChild(link);
 
-// function save(blob, filename) {
-//   link.href = URL.createObjectURL(blob);
-//   link.download = filename;
-//   link.click();
-// }
+function save(blob, filename) {
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
 
-// function saveArrayBuffer(buffer, filename) {
-//   save(new Blob([buffer], { type: "application/octet-stream" }), filename);
-// }
+function saveArrayBuffer(buffer, filename) {
+  save(new Blob([buffer], { type: "application/octet-stream" }), filename);
+}
 
-// const exporter = new STLExporter();
-// const result = exporter.parse(cube, { binary: true });
-// saveArrayBuffer(result, "box.stl");
+document.getElementById("createStlBtn")?.addEventListener("click", () => {
+  const exporter = new STLExporter();
+  const result = exporter.parse(cube, { binary: true });
+  saveArrayBuffer(result, "box.stl");
+});
