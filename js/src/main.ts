@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import Stats from "three/addons/libs/stats.module.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { STLExporter } from "three/addons/exporters/STLExporter.js";
-import { GPUStatsPanel } from "three/addons/utils/GPUStatsPanel.js";
+import Stats from "three/examples/jsm/libs/stats.module.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
+import { GPUStatsPanel } from "three/examples/jsm/utils/GPUStatsPanel.js";
 
 function createPerspectiveCamera() {
   return new THREE.PerspectiveCamera(
